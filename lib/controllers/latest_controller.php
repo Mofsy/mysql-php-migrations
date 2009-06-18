@@ -29,35 +29,37 @@ class MpmLatestController extends MpmController
 		// make sure we're init'd
 		$this->checkIfReady();
 		
-		// are we forcing this?
-		$forced = '';
-		if (isset($this->arguments[0]) && strcasecmp($this->arguments[0], '--force') == 0)
+		// need a pdo object
+		$pdo = MpmDb::getPdo();
+		
+		// get latest timestamp
+		$latest = MpmMigrationHelper::getCurrentMigrationTimestamp();
+		
+		// get list of migrations
+		$list = MpmListHelper::getList();
+		
+		// get command line writer
+		$clw = MpmCommandLineWriter::getInstance();
+		$clw->writeHeader();
+		
+		// setup PDO transactions
+		$pdo->setAttribute(PDO::ATTR_AUTOCOMMIT, FALSE);
+		
+		echo "Looking for migrations...";
+		
+		// loop through, running the migrations that are after the current migration
+		$new_latest = '';
+		$total_migrations_run = 0;
+		foreach ($list as $obj)
 		{
-		    $forced = '--force';
+			if ($obj->timestamp > $latest)
+			{
+				MpmMigrationHelper::runMigration('up', $obj, $pdo, $new_latest, $total_migrations_run);
+			}
 		}
 		
-		try
-		{
-			$pdo = MpmDb::getPdo();
-			$sql = "SELECT `id` FROM `mpm_migrations` ORDER BY `timestamp` DESC LIMIT 0,1";
-			$stmt = $pdo->query($sql);
-			if ($stmt->rowCount() == 0)
-			{
-				$clw = MpmCommandLineWriter::getInstance();
-				$clw->addText('No migrations exist.');
-				$clw->write();
-				exit;
-			}
-			$result = $stmt->fetch(PDO::FETCH_OBJ);
-			$to_id = $result->id;
-			$obj = new MpmUpController('up', array ( $to_id, $forced ));
-			$obj->doAction();
-		}
-		catch (Exception $e)
-		{
-			echo "\n\nERROR: " . $e->getMessage() . "\n\n";
-			exit;
-		}
+		MpmMigrationHelper::showMigrationResult($latest, $total_migrations_run);
+		$clw->writeFooter();
 	}
 	
 	/**
@@ -71,15 +73,12 @@ class MpmLatestController extends MpmController
 	public function displayHelp()
 	{
 		$obj = MpmCommandLineWriter::getInstance();
-		$obj->addText('./migrate.php latest [--force]');
+		$obj->addText('./migrate.php latest');
 		$obj->addText(' ');
 		$obj->addText('This command is used to migrate up to the most recent version.  No arguments are required.');
 		$obj->addText(' ');
-		$obj->addText('If the --force option is provided, then the script will automatically skip over any migrations which cause errors and continue migrating forward.');
-		$obj->addText(' ');
-		$obj->addText('Valid Examples:');
+		$obj->addText('Valid Example:');
 		$obj->addText('./migrate.php latest', 4);
-		$obj->addText('./migrate.php latest --force', 4);
 		$obj->write();
 	}
 	

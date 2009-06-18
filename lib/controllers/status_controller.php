@@ -37,7 +37,7 @@ class MpmStatusController extends MpmController
 		$num = MpmMigrationHelper::getCurrentMigrationNumber();
 		
 		// get list of migrations
-		$list = MpmListHelper::getFullList();
+		$list = MpmListHelper::getList();
 		
 		// get command line writer
 		$clw = MpmCommandLineWriter::getInstance();
@@ -51,7 +51,32 @@ class MpmStatusController extends MpmController
 		{
 			echo "You are currently on migration $num -- " . $latest . '.';
 		}
-		echo "\n";
+		
+		echo "\n\nLooking for pending migrations...";
+		
+		// loop through, running the migrations that are after the current migration
+		$total_migrations_needed = 0;
+		$num = 0;
+		foreach ($list as $obj)
+		{
+			if ($obj->timestamp > $latest)
+			{
+				echo "\n\t$num\t" . $obj->timestamp;
+				$total_migrations_needed++;
+			}
+			$num++;
+		}
+		
+		// if no migrations run, we're finished
+		if ($total_migrations_needed == 0)
+		{
+			echo "\n\nYou are currently at the latest migration (none pending).\n";
+		}
+		else
+		{
+			echo "\n\n$total_migrations_needed migrations are pending.\nRun ./migrate.php latest to update your database.\n";
+		}
+		
 		$clw->writeFooter();
 	}
 	

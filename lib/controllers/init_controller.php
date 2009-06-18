@@ -117,38 +117,29 @@ class MpmInitController extends MpmController
 		require(MPM_PATH . '/config/db_config.php');
 		$GLOBALS['db_config'] = $db_config;
 		
-		echo "\nConfiguration saved... looking for existing migrations table... ";
+		echo "\nConfiguration saved... looking for existing schema table... ";
 		
 		try
 		{
-			if (false === $this->checkForDbTable())
+			$pdo = MpmDb::getPdo();
+			$sql = "SHOW TABLES";
+			$tables = array();
+			foreach ($pdo->query($sql) as $row)
+			{
+				$tables[] = $row[0];
+			}
+			if (!in_array('mpm_schema', $tables))
 			{
 				echo "not found.\n";
-				echo "Creating migrations table... ";
-				$sql1 = "CREATE TABLE IF NOT EXISTS `mpm_migrations` ( `id` INT(11) NOT NULL AUTO_INCREMENT, `timestamp` DATETIME NOT NULL, `active` TINYINT(1) NOT NULL DEFAULT 0, `is_current` TINYINT(1) NOT NULL DEFAULT 0, PRIMARY KEY ( `id` ) ) ENGINE=InnoDB";
-				$sql2 = "CREATE UNIQUE INDEX `TIMESTAMP_INDEX` ON `mpm_migrations` ( `timestamp` )";
-				$pdo = MpmDb::getPdo();
-				$pdo->beginTransaction();
-				try
-				{
-					$pdo->exec($sql1);
-					$pdo->exec($sql2);
-				}
-				catch (Exception $e)
-				{
-					$pdo->rollback();
-					echo "failure!\n\n" . 'Unable to create required mpm_migrations table:' . $e->getMessage();
-					echo "\n\n";
-					exit;
-				}
-				$pdo->commit();
+				echo "Creating schema table... ";
+				$sql = "CREATE TABLE `mpm_schema` ( `id` INT(11) NOT NULL auto_increment, `latest` varchar(40) NOT NULL, PRIMARY KEY (`id`) ) ENGINE=InnoDB";
+				$pdo->exec($sql);
 				echo "done.\n\n";
 			}
 			else
 			{
-				echo "found.\n";
+				echo "found.\n\n";
 			}
-			
 		}
 		catch (Exception $e)
 		{

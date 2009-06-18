@@ -27,8 +27,6 @@ class MpmUpController extends MpmController
 	public function doAction()
 	{
 		$clw = MpmCommandLineWriter::getInstance();
-		$clw->writeHeader();
-		
 		$pdo = MpmDb::getPdo();
 		
 		if (count($this->arguments) == 0)
@@ -37,40 +35,53 @@ class MpmUpController extends MpmController
 		}
 		
 		$up_to = $this->arguments[0];
-		
 		if (!is_numeric($up_to))
 		{
 			return $this->displayHelp();
 		}
-		
-		// are we forcing this?
-		$forced = false;
-		if (isset($this->arguments[1]) && strcasecmp($this->arguments[1], '--force') == 0)
-		{
-		    $forced = true;
-		}
 
-        // what migrations need to be done?
-        $list = MpmMigrationHelper::getListOfMigrations($up_to);
-        
-		if (count($list) == 0)
+		$list = MpmListHelper::getList();
+		$total = count($list);
+		$last_possible_num = $total - 1;
+		$current = MpmMigrationHelper::getCurrentMigrationNumber();
+
+		$clw->writeHeader();
+		
+		if ($up_to > $last_possible_num)
 		{
-		    echo 'All needed migrations have already been run or no migrations exist.';
-		    $clw->writeFooter();
-		    exit;
+			echo "Unable to migrate up to this migration number.\n";
+			echo "You are already on that migration, past that migration, or it does not exist.\n";
+			$clw->writeFooter();
+			exit;
+		}
+		if ($up_to == $last_possible_num)
+		{
+			echo "Unable to migrate up to this migration number.\n";
+			echo "Use the latest command instead.\n";
+			$clw->writeFooter();
+			exit;
+		}
+		if ($up_to == $current)
+		{
+			echo "Unable to migrate up to this migration number.\n";
+			echo "You are already at this migration.\n";
+			$clw->writeFooter();
+			exit;
 		}
 		
-		$to = MpmMigrationHelper::getTimestampFromId($up_to);
+		$start = ($current != 0) ? $current + 1 : 0;
+		$total_migrations_run = 0;
+		$new_latest = '';
 		
-		echo "Migrating to " . $to . ' (ID '.$up_to.')... ';
+		echo "Migrating to " . $list[$up_to]->timestamp . '... ';
 		
-		foreach ($list as $id => $obj)
+		for ($i = $start; $i <= $up_to; $i++)
 		{
-		    MpmMigrationHelper::runMigration($obj, 'up', $forced);
+			$obj = $list[$i];
+			MpmMigrationHelper::runMigration('up', $obj, $pdo, $new_latest, $total_migrations_run);
 		}
 		
-		MpmMigrationHelper::setCurrentMigration($up_to);
-		
+		MpmMigrationHelper::showMigrationResult($latest, $total_migrations_run);
 		$clw->writeFooter();
 	}
 
@@ -85,17 +96,15 @@ class MpmUpController extends MpmController
 	public function displayHelp()
 	{
 		$obj = MpmCommandLineWriter::getInstance();
-		$obj->addText('./migrate.php up [migration #] [--force]');
+		$obj->addText('./migrate.php up [migration #]');
 		$obj->addText(' ');
 		$obj->addText('This command is used to migrate up to a newer version.  You can get a list of all of the migrations available by using the list command.');
 		$obj->addText(' ');
 		$obj->addText('You must specify a migration # (as provided by the list command)');
 		$obj->addText(' ');
-		$obj->addText('If the --force option is provided, then the script will automatically skip over any migrations which cause errors and continue migrating forward.');
-		$obj->addText(' ');
 		$obj->addText('Valid Examples:');
 		$obj->addText('./migrate.php up 14', 4);
-		$obj->addText('./migrate.php up 12 --force', 4);
+		$obj->addText('./migrate.php up 12', 4);
 		$obj->write();
 	}
 	
