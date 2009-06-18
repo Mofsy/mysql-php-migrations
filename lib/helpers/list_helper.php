@@ -80,7 +80,6 @@ class MpmListHelper
     {
         $pdo = MpmDb::getPdo();
         $pdo->beginTransaction();
-        // add any new files to the database
         try
         {
             $files = MpmListHelper::getListOfFiles();
@@ -98,46 +97,6 @@ class MpmListHelper
             exit;
         }
         $pdo->commit();
-        $pdo->beginTransaction();
-        // remove migrations from the database which no longer have a corresponding file and are not active yet
-        try
-        {
-            $total_migrations = MpmListHelper::getTotalMigrations();
-            $db_list = MpmListHelper::getFullList(0, $total_migrations);
-            $files = MpmListHelper::getListOfFiles();
-            $file_timestamps = MpmListHelper::getTimestampArray($files);
-            foreach ($db_list as $obj)
-            {
-                if (!in_array($obj->timestamp, $file_timestamps) && $obj->active == 0)
-                {
-                    $sql = "DELETE FROM `mpm_migrations` WHERE `id` = '{$obj->id}'";
-                    $pdo->exec($sql);
-                }
-            }
-        }
-        catch (Exception $e)
-        {
-            $pdo->rollback();
-            echo "\n\nError: " . $e->getMessage();
-            echo "\n\n";
-            exit;
-        }
-        $pdo->commit();
-    }
-    
-    /**
-     * Given an array of objects (from the getFullList() or getListOfFiles() methods), returns an array of timestamps.
-     *
-     * @return array
-     */
-    static function getTimestampArray($obj_array)
-    {
-        $timestamp_array = array();
-        foreach ($obj_array as $obj)
-        {
-            $timestamp_array[] = str_replace('T', ' ', $obj->timestamp);
-        }
-        return $timestamp_array;
     }
 	
 	/**

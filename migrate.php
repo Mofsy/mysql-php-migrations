@@ -20,11 +20,6 @@ error_reporting(E_ALL);
 define('MPM_PATH', dirname(__FILE__));
 
 /**
- * 
- */
-define('MPM_VERSION', '1.4.1');
-
-/**
  * Include the init script.
  */
 require_once(MPM_PATH . '/lib/init.php');

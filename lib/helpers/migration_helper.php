@@ -16,54 +16,22 @@
  */
 class MpmMigrationHelper
 {
-    
-    static public function setCurrentMigration($id)
-    {
-	    $pdo = MpmDb::getPdo();
-		$pdo->beginTransaction();
-		try
-		{
-			$sql = "UPDATE `mpm_migrations` SET `is_current` = '0'";
-			$pdo->exec($sql);
-			$sql = "UPDATE `mpm_migrations` SET `is_current` = '1' WHERE `id` = {$id}";
-			$pdo->exec($sql);
-		}
-		catch (Exception $e)
-		{
-			$pdo->rollback();
-			echo "\n\tQuery failed!";
-			echo "\n\t--- " . $e->getMessage();
-			exit;
-		}
-		$pdo->commit();
-    }
-    
 	
 	/**
 	 * Performs a single migration.
 	 *
 	 * @param object  $obj        		    a simple object with migration information (from a migration list)
 	 * @param int    &$total_migrations_run a running total of migrations run
-	 * @param bool    $forced               if true, exceptions will not cause the script to exit
 	 *
 	 * @return void
 	 */
-	static public function runMigration(&$obj, $method = 'up', $forced = false)
+	static public function runMigration(&$obj, $method = 'up')
 	{
-		$filename = MpmStringHelper::getFilenameFromTimestamp($obj->timestamp);
-		$classname = 'Migration_' . str_replace('.php', '', $filename);
-		
-	    // make sure the file exists; if it doesn't, skip it but display a message
-	    if (!file_exists(MPM_PATH . '/db/' . $filename))
-	    {
-	        echo "\n\tMigration " . $obj->timestamp . ' (ID '.$obj->id.') skipped - file missing.';
-	        return;
-	    }
-	    
-	    // file exists -- run the migration
-		echo "\n\tPerforming " . strtoupper($method) . " migration " . $obj->timestamp . ' (ID '.$obj->id.')... ';
 	    $pdo = MpmDb::getPdo();
 		$pdo->beginTransaction();
+		echo "\n\tPerforming migration " . $obj->timestamp . ' ... ';
+		$filename = MpmStringHelper::getFilenameFromTimestamp($obj->timestamp);
+		$classname = 'Migration_' . str_replace('.php', '', $filename);
 		require_once(MPM_PATH . '/db/' . $filename);
 		$migration = new $classname();
 		if ($method == 'down')
@@ -77,25 +45,18 @@ class MpmMigrationHelper
 		try
 		{
 			$migration->$method($pdo);
-			$sql = "UPDATE `mpm_migrations` SET `active` = '$active' WHERE `id` = {$obj->id}";
+			$sql = "UPDATE `mpm_migrations` SET `is_current` = 0";
+			$pdo->exec($sql);
+			$sql = "UPDATE `mpm_migrations` SET `active` = '$active', `is_current` = 1 WHERE `id` = {$obj->id}";
 			$pdo->exec($sql);
 		}
 		catch (Exception $e)
 		{
 			$pdo->rollback();
 			echo "failed!";
-			echo "\n";
-		    $clw = MpmCommandLineWriter::getInstance();
-    		$clw->writeLine($e->getMessage(), 12);
-			if (!$forced)
-			{
-        		echo "\n\n";
-			    exit;
-			}
-			else
-			{
-			    return;
-		    }
+			echo "\n\t--- " . $e->getMessage();
+			MpmMigrationHelper::saveLatest($new_latest);
+			exit;
 		}
 		$pdo->commit();
 		echo "done.";
@@ -135,11 +96,11 @@ class MpmMigrationHelper
 	    $timestamp = MpmMigrationHelper::getTimestampFromId($toId);
 	    if ($direction == 'up')
 	    {
-	        $sql = "SELECT `id`, `timestamp` FROM `mpm_migrations` WHERE `active` = 0 AND `timestamp` <= '$timestamp' ORDER BY `timestamp`";
+	        $sql = "SELECT `id`, `timestamp` FROM `mpm_migrations` WHERE `timestamp` <= '$timestamp' AND `active` = 0 ORDER BY `timestamp`";
 	    }
 	    else
 	    {
-	        $sql = "SELECT `id`, `timestamp` FROM `mpm_migrations` WHERE `active` = 1 AND `timestamp` > '$timestamp' ORDER BY `timestamp` DESC";
+	        $sql = "SELECT `id`, `timestamp` FROM `mpm_migrations` WHERE `timestamp` >= '$timestamp' AND `active` = 1 ORDER BY `timestamp` DESC";
 	    }
         try
         {
