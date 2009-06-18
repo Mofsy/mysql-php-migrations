@@ -44,26 +44,16 @@ class MpmMigrationHelper
 	 *
 	 * @param object  $obj        		    a simple object with migration information (from a migration list)
 	 * @param int    &$total_migrations_run a running total of migrations run
-	 * @param bool    $forced               if true, exceptions will not cause the script to exit
 	 *
 	 * @return void
 	 */
-	static public function runMigration(&$obj, $method = 'up', $forced = false)
+	static public function runMigration(&$obj, $method = 'up')
 	{
-		$filename = MpmStringHelper::getFilenameFromTimestamp($obj->timestamp);
-		$classname = 'Migration_' . str_replace('.php', '', $filename);
-		
-	    // make sure the file exists; if it doesn't, skip it but display a message
-	    if (!file_exists(MPM_PATH . '/db/' . $filename))
-	    {
-	        echo "\n\tMigration " . $obj->timestamp . ' (ID '.$obj->id.') skipped - file missing.';
-	        return;
-	    }
-	    
-	    // file exists -- run the migration
-		echo "\n\tPerforming " . strtoupper($method) . " migration " . $obj->timestamp . ' (ID '.$obj->id.')... ';
 	    $pdo = MpmDb::getPdo();
 		$pdo->beginTransaction();
+		echo "\n\tPerforming migration " . $obj->timestamp . ' (ID '.$obj->id.')... ';
+		$filename = MpmStringHelper::getFilenameFromTimestamp($obj->timestamp);
+		$classname = 'Migration_' . str_replace('.php', '', $filename);
 		require_once(MPM_PATH . '/db/' . $filename);
 		$migration = new $classname();
 		if ($method == 'down')
@@ -84,18 +74,8 @@ class MpmMigrationHelper
 		{
 			$pdo->rollback();
 			echo "failed!";
-			echo "\n";
-		    $clw = MpmCommandLineWriter::getInstance();
-    		$clw->writeLine($e->getMessage(), 12);
-			if (!$forced)
-			{
-        		echo "\n\n";
-			    exit;
-			}
-			else
-			{
-			    return;
-		    }
+			echo "\n\t--- " . $e->getMessage();
+			exit;
 		}
 		$pdo->commit();
 		echo "done.";
