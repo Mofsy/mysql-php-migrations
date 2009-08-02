@@ -3,7 +3,7 @@
 
 = Adding a New Migration =
 
-Type: `./migrate.php add`
+Type: `php migrate.php add`
 
 A new migration file will be created and the filename will be provided.  Example:
 
@@ -65,6 +65,8 @@ class Migration_2008_11_12_19_50_08 extends MpmMigration
 ?>
 }}}
 
-Once you've added your migration, be sure to update your own database using the latest command: `./migrate.php latest`
+Once you've added your migration, be sure to update your own database using the latest command: `php migrate.php latest`
 
 It's usually good practice to commit migrations to your project SVN repository as soon as you've added it so that other developers can migrate to the latest database schema.
+
+You can get a complete list of commands as well as built-in help by using the help command: `php migrate.php help`.
