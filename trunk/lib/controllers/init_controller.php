@@ -16,7 +16,7 @@
  */
 class MpmInitController extends MpmController
 {
-	
+
 	/**
 	 * Determines what action should be performed and takes that action.
 	 *
@@ -31,7 +31,7 @@ class MpmInitController extends MpmController
 	 * @uses MpmCommandLineWriter::writeHeader()
 	 * @uses MpmCommandLineWriter::writeFooter()
 	 * @uses MpmBuildController::build()
-	 * 
+	 *
 	 * @return void
 	 */
 	public function doAction()
@@ -41,11 +41,11 @@ class MpmInitController extends MpmController
 		$port = '';
 		$db_path = '';
 		$method = 0;
-		
+
 		$clw = MpmCommandLineWriter::getInstance();
 		$clw->writeHeader();
 		echo "Defaults are in brackets ([]).  To accept the default, simply press ENTER.\n\n";
-		
+
 		if (file_exists(MPM_PATH . '/config/db_config.php'))
 		{
 			echo "\nWARNING:  IF YOU CONTINUE, YOUR EXISTING MIGRATION SETUP WILL BE ERASED!";
@@ -65,8 +65,33 @@ class MpmInitController extends MpmController
 			    require(MPM_PATH . '/config/db_config.php');
 			}
 		}
-		
-		do 
+
+		echo "\nEnter a name to use for the table that will hold your migration data [";
+		if (isset($db_config) && isset($db_config->migrations_table))
+		{
+		    echo $db_config->migrations_table;
+		}
+		else
+		{
+		    echo 'mpm_migrations';
+		}
+		echo ']: ';
+		$migrations_table = fgets(STDIN);
+		$migrations_table = trim($migrations_table);
+		if (empty($migrations_table))
+		{
+    		if (isset($db_config) && isset($db_config->migrations_table))
+    		{
+    		    $migrations_table = $db_config->migrations_table;
+    		}
+    		else
+    		{
+    			$migrations_table = 'mpm_migrations';
+    		}
+		}
+
+
+		do
 		{
 			echo "\nWhich method would you like to use to connect to\nthe database?  ".MPM_METHOD_PDO."=PDO or ".MPM_METHOD_MYSQLI."=MySQLi";
 			if (isset($db_config))
@@ -122,7 +147,7 @@ class MpmInitController extends MpmController
 		        echo '3306';
 		    }
 		    echo ']: ';
-			
+
 			$port = fgets(STDIN);
 			$port = trim($port);
 			if (empty($port))
@@ -134,7 +159,7 @@ class MpmInitController extends MpmController
 				$port = '';
 			}
 		}
-		
+
 		while (empty($user))
 		{
 			echo "\nEnter your MySQL database username";
@@ -150,7 +175,7 @@ class MpmInitController extends MpmController
 			    $user = $db_config->user;
 			}
 		}
-		
+
 		echo "\nEnter your MySQL database password (enter - for no password) [";
 		if (isset($db_config))
 		{
@@ -167,8 +192,8 @@ class MpmInitController extends MpmController
 		{
 		    $pass = '';
 		}
-		
-		
+
+
 		while (empty($dbname))
 		{
 			echo "\nEnter your MySQL database name";
@@ -184,7 +209,7 @@ class MpmInitController extends MpmController
 			    $dbname = $db_config->name;
 			}
 		}
-		
+
 		echo "\nEnter the directory where you'd like to store your\nmigration files [";
 		if (isset($db_config))
 		{
@@ -209,9 +234,9 @@ class MpmInitController extends MpmController
 		{
 		    $db_path .= '/';
 		}
-		
+
 		$method = (int) $method;
-		
+
 		if (file_exists($db_path . 'schema.php'))
 		{
 		    echo "\nPerform build of database after initialization (builds schema\nand runs all existing migrations) [y/N]: ";
@@ -223,7 +248,7 @@ class MpmInitController extends MpmController
                 $doBuild = true;
             }
 		}
-		
+
 		$file = '<?php' . "\n\n";
 		$file .= '$db_config = (object) array();' . "\n";
 		$file .= '$db_config->host = ' . "'" . $host . "';" . "\n";
@@ -233,13 +258,14 @@ class MpmInitController extends MpmController
 		$file .= '$db_config->name = ' . "'" . $dbname . "';" . "\n";
         $file .= '$db_config->db_path = ' . "'" . $db_path . "';" . "\n";
         $file .= '$db_config->method = ' . $method . ";" . "\n";
-		$file .= "\n?>";
-		
+        $file .= '$db_config->migrations_table = ' . "'" . $migrations_table . "';" . "\n";
+        $file .= "\n?>";
+
 		if (file_exists(MPM_PATH . '/config/db_config.php'))
 		{
 			unlink(MPM_PATH . '/config/db_config.php');
 		}
-		
+
 		$fp = fopen(MPM_PATH . '/config/db_config.php', "w");
 		if ($fp == false)
 		{
@@ -253,21 +279,21 @@ class MpmInitController extends MpmController
 			exit;
 		}
 		fclose($fp);
-		
+
 		require(MPM_PATH . '/config/db_config.php');
 		$GLOBALS['db_config'] = $db_config;
-		
+
 		echo "\nConfiguration saved... looking for existing migrations table... ";
-		
+
 		try
 		{
 			if (false === MpmDbHelper::checkForDbTable())
 			{
 				echo "not found.\n";
 				echo "Creating migrations table... ";
-				$sql1 = "CREATE TABLE IF NOT EXISTS `mpm_migrations` ( `id` INT(11) NOT NULL AUTO_INCREMENT, `timestamp` DATETIME NOT NULL, `active` TINYINT(1) NOT NULL DEFAULT 0, `is_current` TINYINT(1) NOT NULL DEFAULT 0, PRIMARY KEY ( `id` ) ) ENGINE=InnoDB";
-				$sql2 = "CREATE UNIQUE INDEX `TIMESTAMP_INDEX` ON `mpm_migrations` ( `timestamp` )";
-				
+				$sql1 = "CREATE TABLE IF NOT EXISTS `{$migrations_table}` ( `id` INT(11) NOT NULL AUTO_INCREMENT, `timestamp` DATETIME NOT NULL, `active` TINYINT(1) NOT NULL DEFAULT 0, `is_current` TINYINT(1) NOT NULL DEFAULT 0, PRIMARY KEY ( `id` ) ) ENGINE=InnoDB";
+				$sql2 = "CREATE UNIQUE INDEX `TIMESTAMP_INDEX` ON `{$migrations_table}` ( `timestamp` )";
+
 				if (MpmDbHelper::getMethod() == MPM_METHOD_PDO)
 				{
     				$pdo = MpmDbHelper::getDbObj();
@@ -280,7 +306,7 @@ class MpmInitController extends MpmController
     				catch (Exception $e)
     				{
     					$pdo->rollback();
-    					echo "failure!\n\n" . 'Unable to create required mpm_migrations table:' . $e->getMessage();
+    					echo "failure!\n\n" . 'Unable to create required ' . $migrations_table . ' table:' . $e->getMessage();
     					echo "\n\n";
     					exit;
     				}
@@ -292,14 +318,14 @@ class MpmInitController extends MpmController
 			        $mysqli->query($sql1);
 			        if ($mysqli->errno)
 			        {
-    					echo "failure!\n\n" . 'Unable to create required mpm_migrations table:' . $mysqli->error;
+    					echo "failure!\n\n" . 'Unable to create required ' . $migrations_table . ' table:' . $mysqli->error;
     					echo "\n\n";
     					exit;
 			        }
 		            $mysqli->query($sql2);
 			        if ($mysqli->errno)
 			        {
-    					echo "failure!\n\n" . 'Unable to create required mpm_migrations table:' . $mysqli->error;
+    					echo "failure!\n\n" . 'Unable to create required ' . $migrations_table . ' table:' . $mysqli->error;
     					echo "\n\n";
     					exit;
 			        }
@@ -310,7 +336,7 @@ class MpmInitController extends MpmController
 			{
 				echo "found.\n\n";
 			}
-			
+
 		}
 		catch (Exception $e)
 		{
@@ -318,14 +344,14 @@ class MpmInitController extends MpmController
 			echo "Check your database settings and re-run init.\n\n";
 			exit;
 		}
-		
+
 		if (isset($doBuild) && $doBuild === true)
 		{
 		    $obj = new MpmBuildController();
 		    $obj->build();
 		    echo "\n\n";
 		}
-		
+
 		echo "Initalization complete!  Type 'php migrate.php help' for a list of commands.\n\n";
 		$clw->writeFooter();
 		exit;
@@ -333,11 +359,11 @@ class MpmInitController extends MpmController
 
 	/**
 	 * Displays the help page for this controller.
-	 * 
+	 *
 	 * @uses MpmCommandLineWriter::getInstance()
 	 * @uses MpmCommandLineWriter::addText()
 	 * @uses MpmCommandLineWriter::write()
-	 * 
+	 *
 	 * @return void
 	 */
 	public function displayHelp()
@@ -351,7 +377,7 @@ class MpmInitController extends MpmController
 		$obj->addText('./migrate.php init jdoe', 4);
 		$obj->write();
 	}
-	
+
 }
 
 ?>

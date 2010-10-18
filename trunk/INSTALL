@@ -17,7 +17,7 @@ INSTALLATION
 1) CHMOD migrate.php to be executable.
 
 2) Open migrate.php and modify the top line so it points to the path/file
-   of your PHP binary.
+   of your PHP binary.  The current line works in most *nix installations.
 
 3) Make sure you have a valid username/password for your MySQL database server
    and have already created the database on which you will be performing

@@ -26,11 +26,13 @@ class MpmListHelper
      */
     static function getTotalMigrations()
     {
-        $sql = "SELECT COUNT(*) AS total FROM `mpm_migrations`";
+    	$db_config = $GLOBALS['db_config'];
+    	$migrations_table = $db_config->migrations_table;
+    	$sql = "SELECT COUNT(*) AS total FROM `{$migrations_table}`";
         $obj = MpmDbHelper::doSingleRowSelect($sql);
         return $obj->total;
     }
-    
+
     /**
      * Returns a full list of all migrations.
      *
@@ -43,8 +45,10 @@ class MpmListHelper
      */
     static function getFullList($startIdx = 0, $total = 30)
     {
-        $list = array();
-        $sql = "SELECT * FROM `mpm_migrations` ORDER BY `timestamp`";
+    	$db_config = $GLOBALS['db_config'];
+    	$migrations_table = $db_config->migrations_table;
+    	$list = array();
+        $sql = "SELECT * FROM `{$migrations_table}` ORDER BY `timestamp`";
         if ($total > 0)
         {
             $sql .= " LIMIT $startIdx,$total";
@@ -52,10 +56,10 @@ class MpmListHelper
         $list = MpmDbHelper::doMultiRowSelect($sql);
         return $list;
     }
-    
+
     /**
      * Fetches a list of files and adds migrations to the database migrations table.
-     * 
+     *
      * @uses MpmListHelper::getListOfFiles()
      * @uses MpmListHelper::getTotalMigrations()
      * @uses MpmListHelper::getFullList()
@@ -69,7 +73,9 @@ class MpmListHelper
      */
     static function mergeFilesWithDb()
     {
-        $files = MpmListHelper::getListOfFiles();
+    	$db_config = $GLOBALS['db_config'];
+    	$migrations_table = $db_config->migrations_table;
+    	$files = MpmListHelper::getListOfFiles();
         $total_migrations = MpmListHelper::getTotalMigrations();
         $db_list = MpmListHelper::getFullList(0, $total_migrations);
         $file_timestamps = MpmListHelper::getTimestampArray($files);
@@ -83,7 +89,7 @@ class MpmListHelper
                 {
                     foreach ($files as $file)
                     {
-                        $sql = "INSERT IGNORE INTO `mpm_migrations` ( `timestamp`, `active`, `is_current` ) VALUES ( '{$file->timestamp}', 0, 0 )";
+                        $sql = "INSERT IGNORE INTO `{$migrations_table}` ( `timestamp`, `active`, `is_current` ) VALUES ( '{$file->timestamp}', 0, 0 )";
                         $pdo->exec($sql);
                     }
                 }
@@ -105,7 +111,7 @@ class MpmListHelper
                     {
                         if (!in_array($obj->timestamp, $file_timestamps) && $obj->active == 0)
                         {
-                            $sql = "DELETE FROM `mpm_migrations` WHERE `id` = '{$obj->id}'";
+                            $sql = "DELETE FROM `{$migrations_table}` WHERE `id` = '{$obj->id}'";
                             $pdo->exec($sql);
                         }
                     }
@@ -124,12 +130,12 @@ class MpmListHelper
         {
             $mysqli = MpmDbHelper::getMysqliObj();
             $mysqli->autocommit(false);
-            
+
             if (count($files) > 0)
             {
                 try
                 {
-                    $stmt = $mysqli->prepare('INSERT IGNORE INTO `mpm_migrations` ( `timestamp`, `active`, `is_current` ) VALUES ( ?, 0, 0 )');
+                    $stmt = $mysqli->prepare('INSERT IGNORE INTO `'.$migrations_table.'` ( `timestamp`, `active`, `is_current` ) VALUES ( ?, 0, 0 )');
                     foreach ($files as $file)
                     {
                         $stmt->bind_param('s', $file->timestamp);
@@ -153,7 +159,7 @@ class MpmListHelper
             {
                 try
                 {
-                    $stmt = $mysqli->prepare('DELETE FROM `mpm_migrations` WHERE `id` = ?');
+                    $stmt = $mysqli->prepare('DELETE FROM `'.$migrations_table.'` WHERE `id` = ?');
                     foreach ($db_list as $obj)
                     {
                         if (!in_array($obj->timestamp, $file_timestamps) && $obj->active == 0)
@@ -180,7 +186,7 @@ class MpmListHelper
             $mysqli->close();
         }
     }
-    
+
     /**
      * Given an array of objects (from the getFullList() or getListOfFiles() methods), returns an array of timestamps.
      *
@@ -195,7 +201,7 @@ class MpmListHelper
         }
         return $timestamp_array;
     }
-	
+
 	/**
 	 * Returns an array of objects which hold data about a migration file (timestamp, file, etc.).
 	 *
@@ -224,16 +230,19 @@ class MpmListHelper
 			if ($file != 'schema.php' && $file != '.' && $file != '..' && !is_dir($full_file) && stripos($full_file, '.php') !== false)
 			{
                 $timestamp = MpmStringHelper::getTimestampFromFilename($file);
-				$obj = (object) array();
-				$obj->timestamp = $timestamp;
-				$obj->filename = $file;
-				$obj->full_file = $full_file;
-				$list[] = $obj;
+                if ($timestamp !== null)
+                {
+					$obj = (object) array();
+					$obj->timestamp = $timestamp;
+					$obj->filename = $file;
+					$obj->full_file = $full_file;
+					$list[] = $obj;
+                }
 			}
 		}
 		return $list;
 	}
-	
+
 	/**
 	 * Returns an array of migration filenames.
 	 *
@@ -251,7 +260,7 @@ class MpmListHelper
 		}
 		return $files;
 	}
-	
+
 	/**
 	 * Fetches a list of migrations which have already been run.
 	 *
@@ -265,15 +274,17 @@ class MpmListHelper
 	 */
 	static public function getListFromDb($latestTimestamp, $direction = 'up')
 	{
+    	$db_config = $GLOBALS['db_config'];
+    	$migrations_table = $db_config->migrations_table;
 		if ($direction == 'down')
 		{
-			$sql = "SELECT * FROM `mpm_migrations` WHERE `timestamp` <= '$latestTimestamp' AND `active` = 1";
-			$countSql = "SELECT COUNT(*) as total FROM `mpm_migrations` WHERE `timestamp` <= '$latestTimestamp' AND `active` = 1";
+			$sql = "SELECT * FROM `{$migrations_table}` WHERE `timestamp` <= '$latestTimestamp' AND `active` = 1";
+			$countSql = "SELECT COUNT(*) as total FROM `{$migrations_table}` WHERE `timestamp` <= '$latestTimestamp' AND `active` = 1";
 		}
 		else
 		{
-			$sql = "SELECT * FROM `mpm_migrations` WHERE `timestamp` >= '$latestTimestamp' AND `active` = 1";
-			$countSql = "SELECT COUNT(*) as total FROM `mpm_migrations` WHERE `timestamp` >= '$latestTimestamp' AND `active` = 1";
+			$sql = "SELECT * FROM `{$migrations_table}` WHERE `timestamp` >= '$latestTimestamp' AND `active` = 1";
+			$countSql = "SELECT COUNT(*) as total FROM `{$migrations_table}` WHERE `timestamp` >= '$latestTimestamp' AND `active` = 1";
 		}
 		$list = array();
 		$countObj = MpmDbHelper::doSingleRowSelect($countSql);
@@ -287,7 +298,7 @@ class MpmListHelper
 		}
 		return $list;
 	}
-		
+
 }
 
 ?>

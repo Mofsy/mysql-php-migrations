@@ -16,7 +16,7 @@
  */
 class MpmUpController extends MpmController
 {
-	
+
 	/**
 	 * Determines what action should be performed and takes that action.
 	 *
@@ -28,7 +28,7 @@ class MpmUpController extends MpmController
 	 * @uses MpmMigrationHelper::getTimestampFromId()
 	 * @uses MpmMigrationHelper::runMigration()
 	 * @uses MpmMigrationHelper::setCurrentMigration
-	 * 
+	 *
 	 * @param bool $quiet supresses certain text when true
 	 *
 	 * @return void
@@ -36,24 +36,24 @@ class MpmUpController extends MpmController
 	public function doAction($quiet = false)
 	{
 		$clw = MpmCommandLineWriter::getInstance();
-		
+
 		if (!$quiet)
 		{
 		    $clw->writeHeader();
 		}
-		
+
 		if (count($this->arguments) == 0)
 		{
 			return $this->displayHelp();
 		}
-		
+
 		$up_to = $this->arguments[0];
-		
+
 		if (!is_numeric($up_to))
 		{
 			return $this->displayHelp();
 		}
-		
+
 		// are we forcing this?
 		$forced = false;
 		if (isset($this->arguments[1]) && strcasecmp($this->arguments[1], '--force') == 0)
@@ -63,7 +63,7 @@ class MpmUpController extends MpmController
 
         // what migrations need to be done?
         $list = MpmMigrationHelper::getListOfMigrations($up_to);
-        
+
 		if (count($list) == 0)
 		{
 		    if (!$quiet)
@@ -77,21 +77,21 @@ class MpmUpController extends MpmController
 		        return;
 		    }
 		}
-		
+
 		$to = MpmMigrationHelper::getTimestampFromId($up_to);
-		
+
 		if (!$quiet)
 		{
 		    echo "Migrating to " . $to . ' (ID '.$up_to.')... ';
 		}
-		
+
 		foreach ($list as $id => $obj)
 		{
 		    MpmMigrationHelper::runMigration($obj, 'up', $forced);
 		}
-		
+
 		MpmMigrationHelper::setCurrentMigration($up_to);
-		
+
 		if (!$quiet)
 		{
 		    echo "\n";
@@ -101,11 +101,11 @@ class MpmUpController extends MpmController
 
 	/**
 	 * Displays the help page for this controller.
-	 * 
+	 *
 	 * @uses MpmCommandLineWriter::getInstance()
 	 * @uses MpmCommandLineWriter::addText()
 	 * @uses MpmCommandLineWriter::write()
-	 * 
+	 *
 	 * @return void
 	 */
 	public function displayHelp()
@@ -124,7 +124,7 @@ class MpmUpController extends MpmController
 		$obj->addText('./migrate.php up 12 --force', 4);
 		$obj->write();
 	}
-	
+
 }
 
 ?>
