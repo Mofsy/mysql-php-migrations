@@ -1,0 +1,6 @@
+#summary How to Customize
+#labels Featured
+
+As of version 2.1.0, you can now customize the templates which are used to generate empty migration, schema, and test data files.  When the script is looking for this file, it will look first in db/templates.  If the file does not exist, it will then look in lib/templates.
+
+If you want to customize the files, you should copy them from lib/templates to db/templates and customize them only in db/templates.  If you wish to revert to the original files, simply delete the file in the db/templates directory.
