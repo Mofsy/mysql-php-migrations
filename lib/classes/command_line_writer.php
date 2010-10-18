@@ -22,21 +22,21 @@ class MpmCommandLineWriter
 	 * @var MpmCommandLineWriter
 	 */
 	static private $instance;
-	
-	/** 
+
+	/**
 	 * A collection of text items to write to the terminal.
 	 *
 	 * @var array
 	 */
 	private $text;
-	
+
 	/**
 	 * The maximum width to wrap the text displayed.
 	 *
 	 * @var int
 	 */
 	public $maxWidth;
-	
+
 	/**
 	 * Object constructor.
 	 *
@@ -47,7 +47,7 @@ class MpmCommandLineWriter
 		$this->text = array();
 		$this->maxWidth = 80;
 	}
-	
+
     /**
      * Returns a single static instance of this object.
      *
@@ -68,7 +68,7 @@ class MpmCommandLineWriter
 	 * @param string $text   the text to add to the collection
 	 * @param int    $indent the number of spaces to indent each line of this text
 	 *
-	 * @return void 
+	 * @return void
 	 */
 	public function addText($text, $indent = 0)
 	{
@@ -78,7 +78,7 @@ class MpmCommandLineWriter
 		$this->text[] = $obj;
 		return;
 	}
-	
+
 	/**
 	 * Adds the header to the $text property.
 	 *
@@ -90,7 +90,7 @@ class MpmCommandLineWriter
 		$blank->text = ' ';
 		$blank->indent = 0;
 		array_unshift($this->text, $blank);
-		
+
 		$max_line_len = $this->maxWidth - 12;
 		$bar = '';
 		for ($i = 0; $i < $max_line_len; $i++)
@@ -102,14 +102,9 @@ class MpmCommandLineWriter
 		$bar_obj->text = $bar;
 		$bar_obj->indent = 0;
 		array_unshift($this->text, $bar_obj);
-		
-		$lines = array();
-		$lines[] = ' ';
-		$lines[] = "       __ __         __      __                             ";
-		$lines[] = "|\/|  (_ /  \|   __ |__)|__||__) __ |\/|. _  _ _ |_. _  _  _";
-		$lines[] = "|  |\/__)\_\/|__    |   |  ||       |  ||(_)| (_||_|(_)| )_)";
-		$lines[] = "    /                                    _/                 ";
-		
+
+		$lines = MpmTemplateHelper::getTemplateAsArrayOfLines('header.txt');
+
 		$start = count($lines) - 1;
 		for ($i = $start; $i >=0; $i--)
 		{
@@ -123,7 +118,7 @@ class MpmCommandLineWriter
 		}
 		return;
 	}
-	
+
 	/**
 	 * Adds the footer to the $text property.
 	 *
@@ -146,7 +141,7 @@ class MpmCommandLineWriter
 		array_push($this->text, $bar_obj);
 		return;
 	}
-	
+
 	/**
 	 * Writes the header, text, and footer.
 	 *
@@ -163,7 +158,7 @@ class MpmCommandLineWriter
 		$this->writeFooter();
 		return;
 	}
-	
+
 	/**
 	 * Generates and echos the text to the terminal.
 	 *
@@ -201,7 +196,7 @@ class MpmCommandLineWriter
 		echo $body;
 		return;
 	}
-	
+
 	/**
 	 * Writes a single line to the console.
 	 *
@@ -239,7 +234,7 @@ class MpmCommandLineWriter
 		echo $body;
 		return;
 	}
-	
+
 	/**
 	 * Writes the header to the console.
 	 *
@@ -257,7 +252,7 @@ class MpmCommandLineWriter
 		$this->text = $text;
 		return;
 	}
-	
+
 	/**
 	 * Writes the footer to the console.
 	 *
@@ -274,7 +269,7 @@ class MpmCommandLineWriter
 		$this->writeText();
 		$this->text = $text;
 	}
-		
+
 }
 
 ?>

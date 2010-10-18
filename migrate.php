@@ -1,4 +1,4 @@
-#!/usr/local/php5/bin/php
+#!/usr/bin/env php
 <?php
 /**
  * This file is the main script which should be run on the command line in order to perform database migrations.
@@ -14,7 +14,7 @@
 ini_set('display_errors', 1);
 error_reporting(E_ALL);
 
-/** 
+/**
  * Define the full path to this file.
  */
 define('MPM_PATH', dirname(__FILE__));
@@ -22,7 +22,7 @@ define('MPM_PATH', dirname(__FILE__));
 /**
  * Version Number - for reference
  */
-define('MPM_VERSION', '2.0.1');
+define('MPM_VERSION', '2.1.0');
 
 /**
  * Include the init script.

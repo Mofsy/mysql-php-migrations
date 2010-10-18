@@ -42,7 +42,7 @@ class MpmDbHelper
                 throw new Exception('Unknown database connection method defined in database configuration.');
 		}
     }
-    
+
     /**
      * Returns a PDO object with connection in place.
      *
@@ -61,7 +61,7 @@ class MpmDbHelper
         $db_config = $GLOBALS['db_config'];
 		return new PDO("mysql:host={$db_config->host};port={$db_config->port};dbname={$db_config->name}", $db_config->user, $db_config->pass, $pdo_settings);
     }
-    
+
     /**
      * Returns an ExceptionalMysqli object with connection in place.
      *
@@ -74,7 +74,7 @@ class MpmDbHelper
         $db_config = $GLOBALS['db_config'];
         return new ExceptionalMysqli($db_config->host, $db_config->user, $db_config->pass, $db_config->name, $db_config->port);
     }
-    
+
     /**
      * Returns the correct database connection method as set in the database configuration file.
      *
@@ -91,7 +91,7 @@ class MpmDbHelper
 		$db_config = $GLOBALS['db_config'];
 		return $db_config->method;
     }
-    
+
     /**
      * Performs a query; $sql should be a SELECT query that returns exactly 1 row of data; returns an object that contains the row
      *
@@ -133,7 +133,7 @@ class MpmDbHelper
             exit;
         }
     }
-    
+
     /**
      * Performs a SELECT query
      *
@@ -178,7 +178,7 @@ class MpmDbHelper
             exit;
         }
     }
-    
+
     /**
      * Checks to make sure everything is in place to be able to use the migrations tool.
      *
@@ -193,7 +193,7 @@ class MpmDbHelper
      * @uses MPM_METHOD_PDO
      * @uses MPM_METHOD_MYSQLI
      *
-     * @return void     
+     * @return void
      */
     static public function test()
     {
@@ -267,25 +267,31 @@ class MpmDbHelper
     }
 
 	/**
-	 * Checks whether or not the mpm_migrations database table exists.
+	 * Checks whether or not the migrations database table exists.
 	 *
      * @uses MpmDbHelper::getDbObj()
      * @uses MpmDbHelper::getMethod()
      * @uses MPM_METHOD_PDO
      * @uses MPM_METHOD_MYSQLI
-     * 
+     *
 	 * @return bool
 	 */
 	static public function checkForDbTable()
 	{
+		$db_config = $GLOBALS['db_config'];
+		$migrations_table = $db_config->migrations_table;
+		if (isset($db_config->migrations_table))
+		{
+			$migrations_table = $db_config->migrations_table;
+		}
 	    $tables = MpmDbHelper::getTables();
-		if (count($tables) == 0 || !in_array('mpm_migrations', $tables))
+		if (count($tables) == 0 || !in_array($migrations_table, $tables))
 	    {
 	        return false;
 	    }
 	    return true;
 	}
-	
+
 	/**
 	 * Returns an array of all the tables in the database.
 	 *

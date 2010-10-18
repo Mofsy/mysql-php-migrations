@@ -16,7 +16,7 @@
  */
 class MpmAddController extends MpmController
 {
-	
+
 	/**
 	 * Determines what action should be performed and takes that action.
 	 *
@@ -28,22 +28,23 @@ class MpmAddController extends MpmController
 	 * @uses MpmCommandLineWriter::write()
 	 * @uses MpmDbHelper::getMethod()
 	 * @uses MpmUpController::displayHelp()
-	 * 
+	 *
 	 * @return void
 	 */
 	public function doAction()
 	{
 		// make sure system is init'ed
 		MpmDbHelper::test();
-		
+
 		// get date stamp for use in generating filename
 		$date_stamp = date('Y_m_d_H_i_s');
 		$filename = $date_stamp . '.php';
-		$classname = 'Migration_' . $date_stamp;
-		
+		$vars = array ('timestamp' => $date_stamp);
+		//$classname = 'Migration_' . $date_stamp;
+
 		// get list of files
 		$files = MpmListHelper::getFiles();
-		
+
 		// if filename is taken, throw error
 		if (in_array($filename, $files))
 		{
@@ -51,37 +52,17 @@ class MpmAddController extends MpmController
 			$obj->addText('Unable to obtain a unique filename for your migration.  Please try again in a few seconds.');
 			$obj->write();
 		}
-		
+
 		// create file
 		if (MpmDbHelper::getMethod() == MPM_METHOD_PDO)
 		{
-			$file = "<?php\n\n";
-			$file .= 'class ' . $classname . ' extends MpmMigration' . "\n";
-			$file .= "{\n\n";
-			$file .= "\t" . 'public function up(PDO &$pdo)' . "\n";
-			$file .= "\t{\n\t\t\n";
-			$file .= "\t}\n\n";
-			$file .= "\t" . 'public function down(PDO &$pdo)' . "\n";
-			$file .= "\t{\n\t\t\n";
-			$file .= "\t}\n\n";
-			$file .= "}\n\n";
-			$file .= "?>";
+			$file = MpmTemplateHelper::getTemplate('pdo_migration.txt', $vars);
 		}
 		else
 		{
-			$file = "<?php\n\n";
-			$file .= 'class ' . $classname . ' extends MpmMysqliMigration' . "\n";
-			$file .= "{\n\n";
-			$file .= "\t" . 'public function up(ExceptionalMysqli &$mysqli)' . "\n";
-			$file .= "\t{\n\t\t\n";
-			$file .= "\t}\n\n";
-			$file .= "\t" . 'public function down(ExceptionalMysqli &$mysqli)' . "\n";
-			$file .= "\t{\n\t\t\n";
-			$file .= "\t}\n\n";
-			$file .= "}\n\n";
-			$file .= "?>";
+			$file = MpmTemplateHelper::getTemplate('mysqli_migration.txt', $vars);
 		}
-		
+
 		// write the file
 		$fp = fopen(MPM_DB_PATH . $filename, "w");
 		if ($fp == false)
@@ -98,7 +79,7 @@ class MpmAddController extends MpmController
 			$obj->write();
 		}
 		fclose($fp);
-		
+
 		// display success message
 		$obj = MpmCommandLineWriter::getInstance();
 		$obj->addText('New migration created: file /db/' . $filename);
@@ -107,11 +88,11 @@ class MpmAddController extends MpmController
 
 	/**
 	 * Displays the help page for this controller.
-	 * 
+	 *
 	 * @uses MpmCommandLineWriter::getInstance()
 	 * @uses MpmCommandLineWriter::addText()
 	 * @uses MpmCommandLineWriter::write()
-	 * 
+	 *
 	 * @return void
 	 */
 	public function displayHelp()
@@ -125,7 +106,7 @@ class MpmAddController extends MpmController
 		$obj->addText('./migrate.php add', 4);
 		$obj->write();
 	}
-	
+
 }
 
 ?>
